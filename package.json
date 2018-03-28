@@ -1,0 +1,22 @@
+{
+  "name": "fft",
+  "version": "1.0.0",
+  "description": "fft, instagram",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "github.com/VicoErv/fft"
+  },
+  "keywords": [
+    "fft",
+    "instagram"
+  ],
+  "author": "VicoErv",
+  "license": "MIT",
+  "dependencies": {
+    "instagram-private-api": "^0.6.7"
+  }
+}
