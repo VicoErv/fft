@@ -39,12 +39,17 @@ var commands = {
     main();
   },
   use: function (command) {
+    if (table.length === 0) {
+      console.log(Colors.FgRed + 'No User' + Colors.Reset);
+      return;
+    }
+
     if (command[1].search(/^\d+$/) > -1) {
       user      = table[parseInt(command[1]) - 1];
       userInput = user;
 
       console.log(`${Colors.FgBlue}${user.username}${Colors.Reset} Used as default user.`);
-      console.log(`Press ${Colors.FgGreen}Run${Colors.Reset} to start program.`);
+      console.log(`Type ${Colors.FgGreen}Run${Colors.Reset} to start program.`);
       return true;
     } else if (typeof command[1] === 'string') {
       db.findOne({username: command[1]}, {}, function(err, doc) {
@@ -52,11 +57,15 @@ var commands = {
         userInput = user;
 
         console.log(`Use ${Colors.FgBlue}${user.username}${Colors.Reset} as User`);
-        console.log(`Press ${Colors.FgGreen}Run${Colors.Reset} to start program.`);
+        console.log(`Type ${Colors.FgGreen}Run${Colors.Reset} to start program.`);
         return true;
       });
     }
-  }
+  },
+  exit: function () {
+    process.exit(0);
+  },
+  add: (command) => add (command)
 }
 
 askStorage();
@@ -86,7 +95,7 @@ function askStorage() {
   })
 }
 
-function main() {
+function add (command) {
   return Util.ask('username? ')
     .then(()=>Util.ask('password? '))
     .then(()=>Util.ask('target? '))
@@ -101,15 +110,25 @@ function main() {
 
       Util.responses.length = 0;
 
-      rl.close();
+      if (typeof command === 'undefined') {
+        rl.close();
+      }
 
-      console.log('Processing\t' + Colors.FgRed      + userInput.username + Colors.Reset);
+      console.log('');
+      
+      if (typeof command !== 'undefined') {
+        console.log(`${Colors.FgGreen}*User Registered*${Colors.Reset}`);
+      } else {
+        console.log(`${Colors.FgGreen}*Processing User*${Colors.Reset}`);
+      }
+
+      console.log('Username\t'   + Colors.FgRed      + userInput.username + Colors.Reset);
       console.log('Target is\t'  + Colors.FgBlue     + userInput.target   + Colors.Reset);
-      console.log('With delay\t' + Colors.Underscore + userInput.delay    + Colors.Reset);
+      console.log('With delay\t' + Colors.Underscore + userInput.delay    + Colors.Reset + ' ms');
 
       if (userInput.username.length > 0 &&
           userInput.password.length > 0) {
-            new Promise(function (resolve, reject) {
+            return new Promise(function (resolve, reject) {
               db.find({username: userInput.username}, function(err, res) {
                 if (err) reject(err);
 
@@ -122,18 +141,23 @@ function main() {
                     resolve(userInput);
                   });
                 }
+
+                if (typeof command !== 'undefined') {
+                  askStorage();
+                }
               });
-            });
+            })
       }
-    })
-    .then(() => {
-      return Client.Session.create(
-        new Client.Device(userInput.username),
-        new Client.CookieMemoryStorage(),
-        userInput.username,
-        userInput.password
-      )
-    })
+  });
+}
+
+function main () {
+    return Client.Session.create(
+      new Client.Device(userInput.username),
+      new Client.CookieMemoryStorage(),
+      userInput.username,
+      userInput.password
+    )
     .then((session) => {
       return Client.Account.searchForUser(session, 'instagram');
     })
