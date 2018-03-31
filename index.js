@@ -260,58 +260,58 @@ function main () {
     })
     .then(following => {
       let i = 0;
-      var pValue, pAction, pCondition;
 
-      var promiseFor = Promise.method(function(condition, action, value) {
-        pValue     = value;
-        pAction    = action;
-        pCondition = condition;
-
-        if (!condition(value)) return value;
+      var promiseWhile = Promise.method(function(condition, action) {
+        if (!condition()) return;
         return new Promise((resolve) => setTimeout(function() {
-          pAction(pValue).then(promiseFor.bind(null, pCondition, pAction))
+          return action().then(promiseWhile.bind(null, condition, action))
           resolve();
         }, userInput.delay))
       });
 
-      promiseFor(function(count) {
+      promiseWhile(function() {
         return typeof following[i] !== 'undefined';
-      }, function(count) {
+      }, function() {
         return follow(following[i].id).then(function(resp) {
+          let current = following[i];
           let resolve = Promise.resolve;
-          if (following[i].params.isPrivate) {
-            console.log(`${following[i]._params.username} | ${Colors.FgRed}User is Private, Skip${Colors.Reset}`);
-            return ++i;
+          //todo: isPrivate before follow
+          if (current.params.isPrivate) {
+            console.log(`${current._params.username} | ${Colors.FgRed}User is Private, Skip${Colors.Reset}`);
+            resolve(++i);
+            return true;
           }
 
-          dbFollowing.find({userId: following[i].id}, function (err, doc) {
+          dbFollowing.find({userId: current.id}, function (err, doc) {
             if (doc.length === 0) {
-              console.log(`${following[i]._params.username} | ${Colors.FgGreen}Success Following${Colors.Reset}`);
-            let userMedia  = new Client.Feed.UserMedia(gSession, following[i].id, 1);
+              console.log(`${current._params.username} | ${Colors.FgGreen}Success Following${Colors.Reset}`);
+            let userMedia  = new Client.Feed.UserMedia(gSession, current.id, 1);
               let _userMedia = userMedia.get.bind(userMedia);
               return _userMedia()
                 .then(function (media) {
+                  if (media.length === 0) {
+                    console.log(`${current._params.username} | ${Colors.FgRed}No Media, Skip${Colors.Reset}`);
+                    return ++i;
+                  }
                  Client.Comment.create(gSession, media[0].id, sample(comments).text)
                     .then(function (resp) {
-                      console.log(`${following[i]._params.username} | ${Colors.FgGreen}Comment Added${Colors.Reset}`);
+                      console.log(`${current._params.username} | ${Colors.FgGreen}Comment Added${Colors.Reset}`);
                       Client.Like.create(gSession, media[0].id)
                         .then(function (resp) {
-                          console.log(`${following[i]._params.username} | ${Colors.FgGreen}Like Given${Colors.Reset}`);
-                          dbFollowing.insert({userId: following[i].id}, function (err, newDoc) {
-                            console.log(`${Colors.FgYellow}Sleep for ${Colors.Reset}${Colors.Underscore}${userInput.delay}${Colors.Reset} Seconds...`);
+                          console.log(`${current._params.username} | ${Colors.FgGreen}Like Given${Colors.Reset}`);
+                          dbFollowing.insert({userId: current.id}, function (err, newDoc) {
                             return ++i;
                           })
                         });
                     });
                 })
             } else {
-              console.log(`${Colors.FgRed}Already Followed${Colors.Reset} | ${following[i]._params.username}`);
-              console.log(`${Colors.FgYellow}Sleep for ${Colors.Reset}${Colors.Underscore}${userInput.delay}${Colors.Reset} Seconds...`);
+              console.log(`${current._params.username} | ${Colors.FgRed}Already Followed${Colors.Reset}`);
               resolve();
               return ++i;
             }
           });
         });
-      }, 0).then();
+      }).then();
     });
 }
