@@ -296,12 +296,10 @@ function main () {
                     .then(function (resp) {
                       Client.Like.create(gSession, media[0].id)
                         .then(function (resp) {
-                          // dbFollowing.insert({userId: following[i].id}, function (err, newDoc) {
-                          //   
+                          dbFollowing.insert({userId: following[i].id}, function (err, newDoc) {
                             return ++i;
                             console.log(`${Colors.FgYellow}Sleep for ${Colors.Reset}${Colors.Underscore}${userInput.delay}${Colors.Reset} Seconds...`);
-                
-                          // })
+                          })
                         });
                     });
                 })
