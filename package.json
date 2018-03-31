@@ -21,7 +21,6 @@
     "bluebird": "^3.5.1",
     "instagram-private-api": "^0.6.7",
     "lodash.sample": "^4.2.1",
-    "nedb": "^1.8.0",
-    "sleep": "^5.1.1"
+    "nedb": "^1.8.0"
   }
 }
