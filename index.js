@@ -235,7 +235,6 @@ function login(username, password) {
         password
       ).then(function(session) {
         gSession = session;
-        console.log(gSession);
         resolve(gSession);
       })
     })
@@ -281,24 +280,26 @@ function main () {
         return follow(following[i].id).then(function(resp) {
           let resolve = Promise.resolve;
           if (following[i].params.isPrivate) {
-            console.log(`${Colors.FgRed}User is Private, Skip${Colors.Reset}`);
-            return i++;
+            console.log(`${following[i]._params.username} | ${Colors.FgRed}User is Private, Skip${Colors.Reset}`);
+            return ++i;
           }
 
           dbFollowing.find({userId: following[i].id}, function (err, doc) {
             if (doc.length === 0) {
-              console.log(`${Colors.FgGreen}Success Following${Colors.Reset} | ${following[i]._params.username}`);
+              console.log(`${following[i]._params.username} | ${Colors.FgGreen}Success Following${Colors.Reset}`);
             let userMedia  = new Client.Feed.UserMedia(gSession, following[i].id, 1);
               let _userMedia = userMedia.get.bind(userMedia);
               return _userMedia()
                 .then(function (media) {
                  Client.Comment.create(gSession, media[0].id, sample(comments).text)
                     .then(function (resp) {
+                      console.log(`${following[i]._params.username} | ${Colors.FgGreen}Comment Added${Colors.Reset}`);
                       Client.Like.create(gSession, media[0].id)
                         .then(function (resp) {
+                          console.log(`${following[i]._params.username} | ${Colors.FgGreen}Like Given${Colors.Reset}`);
                           dbFollowing.insert({userId: following[i].id}, function (err, newDoc) {
-                            return ++i;
                             console.log(`${Colors.FgYellow}Sleep for ${Colors.Reset}${Colors.Underscore}${userInput.delay}${Colors.Reset} Seconds...`);
+                            return ++i;
                           })
                         });
                     });
