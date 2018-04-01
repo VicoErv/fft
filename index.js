@@ -342,9 +342,10 @@ function main () {
 }
 
 //dispatcher
-
-console.log(`${Colors.BgWhite}${Colors.FgBlack}VicoErv/fft${Colors.Reset}`);
-console.log(`${Colors.BgWhite}${Colors.FgRed}Report problem or recommend new feature please create new issue on github.${Colors.Reset}`);
+console.log('Contributor: ');
+console.log(`${Colors.BgWhite}${Colors.FgBlack}VicoErv/fft${Colors.Reset} ${Colors.BgWhite}${Colors.FgBlack}DandyRaka${Colors.Reset}`);
+console.log(`${Colors.BgWhite}${Colors.FgBlack}JaluxsCyber${Colors.Reset} ${Colors.BgWhite}${Colors.FgBlack}Hwnestyan${Colors.Reset}`);
+console.log(`${Colors.FgRed}Report problem or recommend new feature please create new issue on github.${Colors.Reset}`);
 console.log(`- Commands: `);
 console.log(`  ${Colors.FgGreen}User${Colors.Reset}`);
 console.log(`   add       add new user`);
@@ -360,4 +361,5 @@ console.log(`  ${Colors.FgGreen}Program${Colors.Reset}`);
 console.log(`   use       set user for fft program`);
 console.log(`   run       start fft program`);
 console.log(`   exit      exit program`);
+console.log('');
 askStorage();
