@@ -276,7 +276,7 @@ function main () {
       return Client.Account.searchForUser(gSession, userInput.target);
     })
     .then((account) => {
-      let following = new Client.Feed.AccountFollowing(gSession, account.id);
+      let following = new Client.Feed.AccountFollowers(gSession, account.id);
       return following.get();
     })
     .then(following => {
@@ -297,7 +297,7 @@ function main () {
 
         if (current.params.isPrivate) {
           return new Promise(function (resolve) {
-            console.log(`${current._params.username}\t| ${Colors.FgRed}User is Private, Skip${Colors.Reset}`);
+            console.log(`${current._params.username} ${Colors.FgRed} is Private, Skip${Colors.Reset}`);
             resolve(++i);
             return true;
           });
