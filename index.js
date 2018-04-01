@@ -5,6 +5,7 @@ var Util       = require('./lib/util');
 var AsciiTable = require('ascii-table');
 var Promise    = require('bluebird');
 var sample     = require('lodash.sample');
+var fs         = require('fs');
 
 var DataStore = require('nedb'),
   db          = new DataStore({ filename: __dirname + '/' + 'db', autoload: true }),
@@ -58,7 +59,17 @@ var commands = {
     })
   },
   remove: function (command) {
+    if (command.length < 2) {
+      console.log(`${Colors.FgRed}Error: Expected identifier${Colors.Reset}`);
+      console.log(` Please provide username`);
+      console.log(` example:`);
+      console.log(`   - remove yourusername`);
+      return;
+    }
+
     db.remove({username: command[1]});
+    console.log(`${Colors.FgGreen}Success${Colors.Reset}`);
+    console.log(` User ${command[1]} has been removed.`);
   },
   update: function (command) {
     db.update({username: $command[1]}, {})
@@ -73,6 +84,15 @@ var commands = {
     main();
   },
   use: function (command) {
+    if (command.length < 2) {
+      console.log(`${Colors.FgRed}Error: Expected identifier${Colors.Reset}`);
+      console.log(` Please provide index of user or username`);
+      console.log(` example:`);
+      console.log(`   - use 1`);
+      console.log(`   - use yourusername`);
+      return;
+    }
+
     if (table.length === 0) {
       console.log(Colors.FgRed + 'No User' + Colors.Reset);
       return;
@@ -102,8 +122,6 @@ var commands = {
   add: (command) => add (command),
   comment: (command) => comment(command)
 }
-
-askStorage();
 
 function askStorage() {
   new Promise(function(resolve, reject) {
@@ -171,8 +189,6 @@ function add (command) {
           if (typeof command === 'undefined') {
             rl.close();
           }
-    
-          console.log('');
           
           if (typeof command !== 'undefined') {
             console.log(`${Colors.FgGreen}*User Registered*${Colors.Reset}`);
@@ -236,6 +252,11 @@ function login(username, password) {
       ).then(function(session) {
         gSession = session;
         resolve(gSession);
+      }).catch(function() {
+        fs.unlinkSync(__dirname + '/' + username + '.cookie');
+        console.log(`${Colors.FgRed}Invalid username or password${Colors.Reset}`);
+        askStorage();
+        return false;
       })
     })
   }
@@ -272,33 +293,37 @@ function main () {
       promiseWhile(function() {
         return typeof following[i] !== 'undefined';
       }, function() {
-        return follow(following[i].id).then(function(resp) {
-          let current = following[i];
-          let resolve = Promise.resolve;
-          //todo: isPrivate before follow
-          if (current.params.isPrivate) {
-            console.log(`${current._params.username} | ${Colors.FgRed}User is Private, Skip${Colors.Reset}`);
+        let current = following[i];
+
+        if (current.params.isPrivate) {
+          return new Promise(function (resolve) {
+            console.log(`${current._params.username}\t| ${Colors.FgRed}User is Private, Skip${Colors.Reset}`);
             resolve(++i);
             return true;
-          }
+          });
+        }
+
+        return follow(following[i].id).then(function(resp) {
+          let resolve = Promise.resolve;
+          //todo: isPrivate before follow
 
           dbFollowing.find({userId: current.id}, function (err, doc) {
             if (doc.length === 0) {
-              console.log(`${current._params.username} | ${Colors.FgGreen}Success Following${Colors.Reset}`);
+              console.log(`${current._params.username} ${Colors.FgGreen}Success Following${Colors.Reset}`);
             let userMedia  = new Client.Feed.UserMedia(gSession, current.id, 1);
               let _userMedia = userMedia.get.bind(userMedia);
               return _userMedia()
                 .then(function (media) {
                   if (media.length === 0) {
-                    console.log(`${current._params.username} | ${Colors.FgRed}No Media, Skip${Colors.Reset}`);
+                    console.log(`${current._params.username} ${Colors.FgRed}No Media, Skip${Colors.Reset}`);
                     return ++i;
                   }
                  Client.Comment.create(gSession, media[0].id, sample(comments).text)
                     .then(function (resp) {
-                      console.log(`${current._params.username} | ${Colors.FgGreen}Comment Added${Colors.Reset}`);
+                      console.log(`${current._params.username} ${Colors.FgGreen}Comment Added${Colors.Reset}`);
                       Client.Like.create(gSession, media[0].id)
                         .then(function (resp) {
-                          console.log(`${current._params.username} | ${Colors.FgGreen}Like Given${Colors.Reset}`);
+                          console.log(`${current._params.username} ${Colors.FgGreen}Like Given${Colors.Reset}`);
                           dbFollowing.insert({userId: current.id}, function (err, newDoc) {
                             return ++i;
                           })
@@ -306,7 +331,7 @@ function main () {
                     });
                 })
             } else {
-              console.log(`${current._params.username} | ${Colors.FgRed}Already Followed${Colors.Reset}`);
+              console.log(`${current._params.username} ${Colors.FgRed}Already Followed${Colors.Reset}`);
               resolve();
               return ++i;
             }
@@ -315,3 +340,22 @@ function main () {
       }).then();
     });
 }
+
+//dispatcher
+
+console.log(`${Colors.BgWhite}${Colors.FgBlack}VicoErv/fft${Colors.Reset}`);
+console.log(`${Colors.BgWhite}${Colors.FgRed}Report problem or recommend new feature please create new issue on github.${Colors.Reset}`);
+console.log(`- Commands: `);
+console.log(` ${Colors.FgGreen}- User${Colors.Reset}`);
+console.log(`  - add     - add new user`);
+console.log(`  - list    - list added user`);
+console.log(`  - update  - update added user`);
+console.log(`  - remove  - remove added user`);
+console.log(` ${Colors.FgGreen}- Comment${Colors.Reset}`);
+console.log(`  - comment - add new comment`);
+console.log(`  - clist   - list added comment`);
+console.log(` ${Colors.FgGreen}- Program${Colors.Reset}`);
+console.log(`  - use     - set user for fft program`);
+console.log(`  - run     - start fft program`);
+console.log(`  - exit    - exit program`);
+askStorage();
