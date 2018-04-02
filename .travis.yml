@@ -3,7 +3,7 @@ node_js:
   - "node"
 before_script:
   - npm install
-script: node index.js
+script: node index.js < "exit"
 cache:
   directories:
     - "node_modules"
