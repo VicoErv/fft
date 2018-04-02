@@ -1,6 +1,30 @@
 # FFT Beta [![Build Status](https://travis-ci.org/VicoErv/fft.svg?branch=master)](https://travis-ci.org/VicoErv/fft)
 For information please check [fft wiki](https://github.com/VicoErv/fft/wiki)
 
+## Install
+- Using git:
+  
+      $ pkg install git nodejs openssl openssh
+      $ mkdir ~/fft && cd ~/fft
+      $ git clone https://github.com/VicoErv
+      $ npm install
+
+- Using npm
+
+      $ pkg install nodejs
+      $ mkdir ~/fft && cd ~/fft
+      $ npm install vfft
+
+## Updating
+- Using git:
+      
+      $ cd ~/fft && git pull --force
+
+- Using npm:
+
+      $ npm update
+
+
 ## Available Commands :
 - User :
     - add `add new user`
