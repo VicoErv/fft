@@ -387,16 +387,25 @@ function unfollow () {
               promiseWhile(function () {
                 return typeof following[i] !== 'undefined';
               }, function () {
+                let current = following[i];
+
                 return new Promise(function (resolve) {
                   resolve();
                 }).then(function () {
-                  Client.Relationship.get(gSession, following[i].id)
+                  Client.Relationship.get(gSession, current.id)
                     .then(function (status) {
                       if (!status.params.followed_by) {
-                        let username = following[i].params.username;
-                        console.log(`${Colors.Bright}${Colors.FgRed}${username} is not following you${Colors.Reset}`);
+                        let username = current.params.username;
+                        console.log(`${Colors.Bright}${Colors.FgRed}${username}${Colors.Reset} ${Colors.FgRed}is not following you${Colors.Reset}`);
+                        
+                        Client.Relationship.destroy(gSession, current.id)
+                         .then(function (resp) {
+                           if (!resp.params.following) {
+                            console.log(`${Colors.Bright}${Colors.FgRed}${username}${Colors.Reset} ${Colors.FgGreen}has been unfollowed!${Colors.Reset}`);
+                           }
+                          return ++i;
+                         })
                       }
-                      return ++i;
                     })
                 })
               });
