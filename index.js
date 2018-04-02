@@ -7,10 +7,16 @@ var Promise    = require('bluebird');
 var sample     = require('lodash.sample');
 var fs         = require('fs');
 
+let dbFolder = {
+  db: __dirname + '/local/db/' + 'db',
+  following: __dirname + '/local/db/' + 'following',
+  comment: __dirname + '/local/db/' + 'comment'
+}
+
 var DataStore = require('nedb'),
-  db          = new DataStore({ filename: __dirname + '/' + 'db', autoload: true }),
-  dbFollowing = new DataStore({ filename: __dirname + '/' + 'following', autoload: true}),
-  dbComment   = new DataStore({ filename: __dirname + '/' + 'comment', autoload: true});
+  db          = new DataStore({ filename: dbFolder.db, autoload: true }),
+  dbFollowing = new DataStore({ filename: dbFolder.following, autoload: true}),
+  dbComment   = new DataStore({ filename: dbFolder.comment, autoload: true});
 
 var userInput = {
   username: null,
@@ -128,7 +134,8 @@ var commands = {
     process.exit(0);
   },
   add: (command) => add (command),
-  comment: (command) => comment(command)
+  comment: (command) => comment(command),
+  unfollow: unfollow
 }
 
 function askStorage() {
@@ -138,7 +145,7 @@ function askStorage() {
         reject(err);
       } else {
         table = doc;
-        resolve(Util.ask(Colors.FgGreen + 'command' + Colors.Reset + '> '))
+        resolve(Util.ask(Colors.Bright + Colors.FgGreen + 'command' + Colors.Reset + '> '))
       }
     })
   }).then(function(rl) {
@@ -148,6 +155,7 @@ function askStorage() {
     if (command.length > 0 && commands.hasOwnProperty(command[0])) {
       let res = commands[command[0]](command);
       if (command[0] === 'run' && res !== false) return;
+      if (command[0] === 'unfollow' && res !== false) return;
     } else {
       console.log('Invalid command `' + command[0] + '`' );
     }
@@ -180,7 +188,7 @@ function add (command) {
   return Util.ask('username? ')
     .then(()=>Util.ask('password? '))
     .then(()=>Util.ask('target? '))
-    .then(()=>Util.ask('delay (s)? '))
+    .then(()=>Util.ask('delay (ms)? '))
     .then((rl) => {
       login(Util.responses[0], Util.responses[1])
         .then(function(session) {
@@ -242,26 +250,28 @@ function add (command) {
 
 function login(username, password) {
   console.log(` ${Colors.FgGreen}Please wait...${Colors.Reset}`);
-  if (Util.fileExists(username + '.cookie')) {
+  if (Util.fileExists(__dirname + '/local/cookie/' + username + '.cookie')) {
     return new Promise(function(resolve) {
       gSession = new Client.Session(
         new Client.Device(username),
-        new Client.CookieFileStorage(username + '.cookie')
+        new Client.CookieFileStorage(__dirname + '/local/cookie/' + username + '.cookie')
       );
+      console.log(`${Colors.Bright}${Colors.FgGreen}Login using stored Session!${Colors.Reset}`);
       resolve(gSession);
     })
   } else {
     return new Promise(function (resolve) {
       Client.Session.create(
         new Client.Device(username),
-        new Client.CookieFileStorage(username + '.cookie'),
+        new Client.CookieFileStorage(__dirname + '/local/cookie/' + username + '.cookie'),
         username,
         password
       ).then(function(session) {
         gSession = session;
+        console.log(`${Colors.Bright}${Colors.FgGreen}Login Completed!${Colors.Reset}`);
         resolve(gSession);
       }).catch(function() {
-        fs.unlinkSync(__dirname + '/' + username + '.cookie');
+        fs.unlinkSync(__dirname + '/local/cookie/' + username + '.cookie');
         console.log(`${Colors.FgRed}Invalid username or password${Colors.Reset}`);
         askStorage();
         return false;
@@ -305,7 +315,7 @@ function main () {
 
         if (current.params.isPrivate) {
           return new Promise(function (resolve) {
-            console.log(`${current._params.username} ${Colors.FgRed} is Private, Skip${Colors.Reset}`);
+            console.log(`${current._params.username}${Colors.FgRed} is Private, Skip${Colors.Reset}`);
             resolve(++i);
             return true;
           });
@@ -313,7 +323,6 @@ function main () {
 
         return follow(following[i].id).then(function(resp) {
           let resolve = Promise.resolve;
-          //todo: isPrivate before follow
 
           dbFollowing.find({userId: current.id}, function (err, doc) {
             if (doc.length === 0) {
@@ -330,7 +339,7 @@ function main () {
                     console.log(`${current._params.username} ${Colors.FgRed}No Media, Skip${Colors.Reset}`);
                     return ++i;
                   }
-                 Client.Comment.create(gSession, media[0].id, sample(comments).text)
+                Client.Comment.create(gSession, media[0].id, sample(comments).text)
                     .then(function (resp) {
                       console.log(`${current._params.username} ${Colors.FgGreen}Comment Added${Colors.Reset}`);
                       Client.Like.create(gSession, media[0].id)
@@ -339,8 +348,12 @@ function main () {
                           dbFollowing.insert({userId: current.id}, function (err, newDoc) {
                             return ++i;
                           })
+                        }).catch(function (error) {
+                          console.log(error);
                         });
-                    });
+                    }).catch(function (error) {
+                      console.log(error);
+                    })
                 })
             } else {
               console.log(`${current._params.username} ${Colors.FgRed}Already Followed${Colors.Reset}`);
@@ -353,23 +366,62 @@ function main () {
     });
 }
 
+function unfollow () {
+  login(userInput.username, userInput.password)
+    .then(function (resp) {
+      return resp.getAccountId()
+        .then(function (accountId) {
+          let following = new Client.Feed.AccountFollowing(gSession, accountId);
+          following.get.bind(following)()
+            .then(function (following) {
+              var i = 0;
+
+              var promiseWhile = Promise.method(function(condition, action) {
+                if (!condition()) return;
+                return new Promise((resolve) => setTimeout(function() {
+                  return action().then(promiseWhile.bind(null, condition, action))
+                  resolve();
+                }, userInput.delay))
+              });
+
+              promiseWhile(function () {
+                return typeof following[i] !== 'undefined';
+              }, function () {
+                return new Promise(function (resolve) {
+                  resolve();
+                }).then(function () {
+                  Client.Relationship.get(gSession, following[i].id)
+                    .then(function (status) {
+                      if (!status.params.followed_by) {
+                        let username = following[i].params.username;
+                        console.log(`${Colors.Bright}${Colors.FgRed}${username} is not following you${Colors.Reset}`);
+                      }
+                      return ++i;
+                    })
+                })
+              });
+            })
+        })
+    })
+}
+
 //dispatcher
 console.log('Contributor: ');
 console.log(`${Colors.BgWhite}${Colors.FgBlack}VicoErv/fft${Colors.Reset} ${Colors.BgWhite}${Colors.FgBlack}DandyRaka${Colors.Reset}`);
 console.log(`${Colors.BgWhite}${Colors.FgBlack}JaluxsCyber${Colors.Reset} ${Colors.BgWhite}${Colors.FgBlack}Hwnestyan${Colors.Reset}`);
-console.log(`${Colors.FgRed}Report problem or recommend new feature please create new issue on github.${Colors.Reset}`);
+console.log(`${Colors.Bright}${Colors.FgBlue}Report problem or recommend new feature please create new issue on github.${Colors.Reset}`);
 console.log(`- Commands: `);
-console.log(`  ${Colors.FgGreen}User${Colors.Reset}`);
+console.log(`  ${Colors.Bright}${Colors.FgGreen}User${Colors.Reset}`);
 console.log(`   add       add new user`);
 console.log(`   list      list added user`);
 console.log(`   update    update added user`);
 console.log(`   remove    remove added user`);
 console.log('');
-console.log(`  ${Colors.FgGreen}Comment${Colors.Reset}`);
+console.log(`  ${Colors.Bright}${Colors.FgGreen}Comment${Colors.Reset}`);
 console.log(`   comment   add new comment`);
 console.log(`   clist     list added comment`);
 console.log('');
-console.log(`  ${Colors.FgGreen}Program${Colors.Reset}`);
+console.log(`  ${Colors.Bright}${Colors.FgGreen}Program${Colors.Reset}`);
 console.log(`   use       set user for fft program`);
 console.log(`   run       start fft program`);
 console.log(`   exit      exit program`);
