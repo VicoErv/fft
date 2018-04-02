@@ -23,8 +23,13 @@ var userInput = {
 var table;
 var userInputKeys = Object.keys(userInput);
 
-var user     = null;
-var comments = null;
+var user      = null;
+var comments  = null;
+
+var fftOptions = {
+  isSilent: false
+}
+
 var commands = {
   list: function () {
     if (table.length === 0) {
@@ -74,7 +79,13 @@ var commands = {
   update: function (command) {
     db.update({username: $command[1]}, {})
   },
-  run: () => {
+  run: (commands) => {
+    for (let i = 1; i < commands.length; i++) {
+      if (commands[i] === '-quiet') {
+        fftOptions.isSilent = true;
+      }
+    }
+
     if (user === null) {
       console.log(`Please \`${Colors.FgBlue}use ${Colors.FgRed}[user index|username]${Colors.Reset}\` before run FFT.`);
       return false;
@@ -310,6 +321,10 @@ function main () {
           dbFollowing.find({userId: current.id}, function (err, doc) {
             if (doc.length === 0) {
               console.log(`${current._params.username} ${Colors.FgGreen}Success Following${Colors.Reset}`);
+              if (fftOptions.isSilent) {
+                return ++i;
+              }
+
             let userMedia  = new Client.Feed.UserMedia(gSession, current.id, 1);
               let _userMedia = userMedia.get.bind(userMedia);
               return _userMedia()
