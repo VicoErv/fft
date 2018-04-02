@@ -76,9 +76,6 @@ var commands = {
     console.log(`${Colors.FgGreen}Success${Colors.Reset}`);
     console.log(` User ${command[1]} has been removed.`);
   },
-  update: function (command) {
-    db.update({username: $command[1]}, {})
-  },
   run: (commands) => {
     for (let i = 1; i < commands.length; i++) {
       if (commands[i] === '-quiet') {

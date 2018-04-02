@@ -5,7 +5,6 @@ For information please check [fft wiki](https://github.com/VicoErv/fft/wiki)
  - ### User :
     - add `add new user`
     - list `list added user`
-    - update `update added user`
     - remove `remove added user`
 
 - ### Comment
