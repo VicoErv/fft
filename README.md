@@ -22,7 +22,7 @@ For information please check [fft wiki](https://github.com/VicoErv/fft/wiki)
 
 - Using npm:
 
-      $ npm update
+      $ cd ~/fft && npm update
 
 
 ## Available Commands :
