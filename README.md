@@ -1,4 +1,4 @@
-# FFT Beta
+# FFT Beta [![Build Status](https://travis-ci.org/VicoErv/fft.svg?branch=master)](https://travis-ci.org/VicoErv/fft)
 For information please check [fft wiki](https://github.com/VicoErv/fft/wiki)
 
 ## Available Commands :
