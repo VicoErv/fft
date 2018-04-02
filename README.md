@@ -41,4 +41,5 @@ For information please check [fft wiki](https://github.com/VicoErv/fft/wiki)
         - `using username of added user`
     - run `start fft program`
         - -silent `run fft without comment`
+    - unfollow `unfollow not following back`
     - exit `exit program`
