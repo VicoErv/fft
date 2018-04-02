@@ -394,8 +394,8 @@ function unfollow () {
                 }).then(function () {
                   Client.Relationship.get(gSession, current.id)
                     .then(function (status) {
+                      let username = current.params.username;
                       if (!status.params.followed_by) {
-                        let username = current.params.username;
                         console.log(`${Colors.Bright}${Colors.FgRed}${username}${Colors.Reset} ${Colors.FgRed}is not following you${Colors.Reset}`);
                         
                         Client.Relationship.destroy(gSession, current.id)
@@ -404,10 +404,13 @@ function unfollow () {
                             console.log(`${Colors.Bright}${Colors.FgRed}${username}${Colors.Reset} ${Colors.FgGreen}has been unfollowed!${Colors.Reset}`);
                            }
                           return ++i;
-                         })
+                         });
+                      } else {
+                        console.log(`${Colors.Bright}${Colors.FgGreen}${username}${Colors.Reset} ${Colors.FgGreen}is following you${Colors.Reset}`);
+                        return ++i;
                       }
-                    })
-                })
+                    });
+                });
               });
             })
         })
@@ -433,6 +436,7 @@ console.log('');
 console.log(`  ${Colors.Bright}${Colors.FgGreen}Program${Colors.Reset}`);
 console.log(`   use       set user for fft program`);
 console.log(`   run       start fft program`);
+console.log(`   unfollow  unfollow not following back`);
 console.log(`   exit      exit program`);
 console.log('');
 askStorage();
