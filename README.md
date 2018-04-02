@@ -2,16 +2,16 @@
 For information please check [fft wiki](https://github.com/VicoErv/fft/wiki)
 
 ## Available Commands :
- - ### User :
+- User :
     - add `add new user`
     - list `list added user`
     - remove `remove added user`
 
-- ### Comment
+- Comment
     - comment `add new comment`
     - clist `list added comment`
 
-- ### Program
+ - Program
     - use `set user for fft program`
         - `index of user in list table`
         - `using username of added user`
