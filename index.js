@@ -8,8 +8,8 @@ var sample     = require('lodash.sample');
 var fs         = require('fs');
 var mkdirp     = require('mkdirp');
 
-mkdirp('/local/db/', function (err) {
-  mkdirp('/local/cookie/', function (err) {
+mkdirp(__dirname + '/local/db/', function (err) {
+  mkdirp(__dirname + '/local/cookie/', function (err) {
     let dbFolder = {
       db: __dirname + '/local/db/' + 'db',
       following: __dirname + '/local/db/' + 'following',

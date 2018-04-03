@@ -1,6 +1,6 @@
 {
   "name": "vfft",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "fft, instagram",
   "main": "index.js",
   "scripts": {
