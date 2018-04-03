@@ -13,19 +13,37 @@ mkdirp('/local/db/', function (err) {
     let dbFolder = {
       db: __dirname + '/local/db/' + 'db',
       following: __dirname + '/local/db/' + 'following',
-      comment: __dirname + '/local/db/' + 'comment'
+      comment: __dirname + '/local/db/' + 'comment',
+      scheduler: __dirname + '/local/db/' + 'scheduler'
     }
 
     db          = new DataStore({ filename: dbFolder.db, autoload: true });
     dbFollowing = new DataStore({ filename: dbFolder.following, autoload: true});
     dbComment   = new DataStore({ filename: dbFolder.comment, autoload: true});
+    dbScheduler = new DataStore({ filename: dbFolder.scheduler, autoload: true });
 
+    dbScheduler.ensureIndex({ fieldName: 'username', unique: true }, function (err) {
+      schedulerPoll();
+    });
+  });
+});
+
+function schedulerPoll() {
+  dbScheduler.find({}, {}, function (err, doc) {
     dispatch();
-  })
-})
+    doc.forEach(function (element) {
+      element.interval = (new Date()).getHours() * 60 + (new Date()).getMinutes();
+      delete element._id;
+      dbScheduler.update({username: element.username}, element, {},
+      function (err, numAffected, affectedDoc, upsert) {
+        startScheduler(element);
+      })
+    })
+  });
+}
 
 var DataStore = require('nedb');
-var db, dbFollowing, dbComment;
+var db, dbFollowing, dbComment, dbScheduler;
 
 var userInput = {
   username: null,
@@ -33,6 +51,14 @@ var userInput = {
   target:   null,
   delay:    null,
   _login:   false
+}
+
+var schObject = {
+  incoming: null,
+  interval: null,
+  username: null,
+  password: null,
+  picIndex: 0
 }
 
 var table;
@@ -152,7 +178,8 @@ var commands = {
   },
   add: (command) => add (command),
   comment: (command) => comment(command),
-  unfollow: unfollow
+  unfollow: unfollow,
+  addsch: addScheduler
 }
 
 function askStorage() {
@@ -266,8 +293,11 @@ function add (command) {
   });
 }
 
-function login(username, password) {
-  console.log(` ${Colors.FgGreen}Please wait...${Colors.Reset}`);
+function login(username, password, arg) {
+  if (typeof arg === 'undefined') {
+    console.log(` ${Colors.FgGreen}Please wait...${Colors.Reset}`);
+  }
+
   if (Util.fileExists(__dirname + '/local/cookie/' + username + '.cookie')) {
     
     return new Promise(function(resolve) {
@@ -275,7 +305,11 @@ function login(username, password) {
         new Client.Device(username),
         new Client.CookieFileStorage(__dirname + '/local/cookie/' + username + '.cookie')
       );
-      console.log(`${Colors.Bright}${Colors.FgGreen}Login using stored Session!${Colors.Reset}`);
+
+      if (typeof arg === 'undefined') {
+        console.log(`${Colors.Bright}${Colors.FgGreen}Login using stored Session!${Colors.Reset}`);
+      }
+
       resolve(gSession);
     })
   } else {
@@ -288,11 +322,19 @@ function login(username, password) {
         password
       ).then(function(session) {
         gSession = session;
-        console.log(`${Colors.Bright}${Colors.FgGreen}Login Completed!${Colors.Reset}`);
+        
+        if (typeof arg === 'undefined') {
+          console.log(`${Colors.Bright}${Colors.FgGreen}Login Completed!${Colors.Reset}`);
+        }
+
         resolve(gSession);
       }).catch(function() {
         fs.unlinkSync(__dirname + '/local/cookie/' + username + '.cookie');
-        console.log(`${Colors.FgRed}Invalid username or password${Colors.Reset}`);
+        
+        if (typeof arg !== 'undefined') {
+          console.log(`${Colors.FgRed}Invalid username or password${Colors.Reset}`);
+        }
+
         askStorage();
     
         return false;
@@ -385,7 +427,9 @@ function main () {
                           console.log(error);
                         });
                     }).catch(function (error) {
-                      console.log(error);
+                      let msg = error.json.feedback_message;
+                      console.log(`${colors.Bright}${Colors.FgRed}${current._params.username}${Colors.Reset} ${Colors.FgRed}${msg}${Colors.Reset}`);
+                      return ++i;
                     })
                 })
             } else {
@@ -454,6 +498,77 @@ function unfollow () {
             })
         })
     })
+}
+
+function addScheduler() {
+  Util.ask('interval? ')
+    .then(()=>Util.ask('username? '))
+    .then(()=>Util.ask('password? '))
+    .then(function (rl) {
+      dbScheduler.find({username: Util.responses[1]}, {}, 
+        function(err, doc) {
+          if (doc.length === 0) {
+            dbScheduler.insert({
+              incoming: ((new Date()).getHours() * 60 + (new Date()).getMinutes()) + parseInt(Util.responses[0]),
+              interval: Util.responses[0],
+              username: Util.responses[1],
+              password: Util.responses[2],
+              picIndex: 0
+            }, function (err, doc) {
+              //todo: add positive response here
+              askStorage();
+            });
+          } else {
+            dbScheduler.update({username: Util.responses[1]}, {
+              incoming: ((new Date()).getHours() * 60 + (new Date()).getMinutes()) + parseInt(Util.responses[0]),
+              interval: Util.responses[0],
+              username: Util.responses[1],
+              password: Util.responses[2],
+              picIndex: 0
+            }, {}, function (err, doc) {
+              //todo: add positive response here
+              askStorage();
+            })
+          }
+
+          Util.responses.length = 0;
+        });
+    });
+}
+
+function startScheduler(doc) {
+  let now = (new Date()).getHours() * 60 + (new Date()).getMinutes();
+
+  if (doc.incoming >= now) {
+    scheduler(doc);
+  } else {
+    setTimeout(schedulerPoll, 60000);
+  }
+}
+
+function scheduler(doc) {
+  login(doc.username, doc.password, 'silent')
+    .then(function () {
+      let dir    = __dirname + '/local/images/' + doc.username + '/';
+      let images = fs.readdirSync(dir);
+      let index  = doc.picIndex;
+
+      Client.Upload.photo(gSession, dir + images[index])
+        .then(function (upload) {
+          return Client.Media.configurePhoto(gSession, upload.params.uploadId);
+        }).then(function (medium) {
+          doc.incoming = (new Date()).getHours() * 60 + parseInt(doc.interval);
+          doc.picIndex += 1;
+          delete doc._id;
+
+          dbScheduler.update({ username: doc.username }, doc, {}, function () {
+            //todo: give some uninterruptible
+            setTimeout(schedulerPoll, 60000);
+          })
+        }).catch(function (err) {
+          //todo: catch some error
+        });
+    });
 }
 
 function dispatch() {
