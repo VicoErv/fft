@@ -236,13 +236,10 @@ function add (command) {
     .then((rl) => {
       login(Util.responses[0], Util.responses[1])
         .then(function(session) {
-          if (!Util.hasUser) {
-            userInput.username = Util.responses[0];
-            userInput.password = Util.responses[1];
-            userInput.target   = Util.responses[2];
-            userInput.delay    = Util.responses[3];
-            userInput._login   = false;
-          }
+          userInput.username = Util.responses[0];
+          userInput.password = Util.responses[1];
+          userInput.target   = Util.responses[2];
+          userInput.delay    = Util.responses[3];
     
           Util.responses.length = 0;
     
@@ -274,7 +271,7 @@ function add (command) {
                         resolve(userInput);
                       });
                     } else {
-                      ({username: userInput.username}, userInput, {}, function(err, doc) {
+                      db.update({username: userInput.username}, userInput, {}, function(err, doc) {
                         if (err) reject(err);
 
                         resolve(userInput);
@@ -285,6 +282,8 @@ function add (command) {
                       askStorage();
                     }
                   });
+                }).catch(function (error) {
+                  console.log(error);
                 })
           }
         }).catch(function(error) {
