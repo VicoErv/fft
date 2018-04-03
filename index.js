@@ -274,7 +274,7 @@ function add (command) {
                         resolve(userInput);
                       });
                     } else {
-                      db.update({username: userInput.username}, userInput, {}, function(err, doc) {
+                      ({username: userInput.username}, userInput, {}, function(err, doc) {
                         if (err) reject(err);
 
                         resolve(userInput);
@@ -329,7 +329,9 @@ function login(username, password, arg) {
 
         resolve(gSession);
       }).catch(function() {
-        fs.unlinkSync(__dirname + '/local/cookie/' + username + '.cookie');
+        if (fs.existsSync(__dirname + '/local/cookie/' + username + '.cookie')) {
+          fs.unlinkSync(__dirname + '/local/cookie/' + username + '.cookie');
+        }
         
         if (typeof arg !== 'undefined') {
           console.log(`${Colors.FgRed}Invalid username or password${Colors.Reset}`);
@@ -428,9 +430,9 @@ function main () {
                         });
                     }).catch(function (error) {
                       let msg = error.json.feedback_message;
-                      console.log(`${colors.Bright}${Colors.FgRed}${current._params.username}${Colors.Reset} ${Colors.FgRed}${msg}${Colors.Reset}`);
+                      console.log(`${Colors.Bright}${Colors.FgRed}${current._params.username}${Colors.Reset} ${Colors.FgRed}${msg}${Colors.Reset}`);
                       return ++i;
-                    })
+                    });
                 })
             } else {
               console.log(`${current._params.username} ${Colors.FgRed}Already Followed${Colors.Reset}`);
