@@ -432,6 +432,10 @@ function main () {
                       console.log(`${Colors.Bright}${Colors.FgRed}${current._params.username}${Colors.Reset} ${Colors.FgRed}${msg}${Colors.Reset}`);
                       return ++i;
                     });
+                }).catch (function () {
+                  console.log(`${current._params.username} ${Colors.FgRed}is Private${Colors.Reset}`);
+                  
+                  return ++i;
                 })
             } else {
               console.log(`${current._params.username} ${Colors.FgRed}Already Followed${Colors.Reset}`);
