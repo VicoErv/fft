@@ -7,6 +7,7 @@ var Promise    = require('bluebird');
 var sample     = require('lodash.sample');
 var fs         = require('fs');
 var mkdirp     = require('mkdirp');
+var request    = require('request');
 
 mkdirp(__dirname + '/local/db/', function (err) {
   mkdirp(__dirname + '/local/cookie/', function (err) {
@@ -179,7 +180,8 @@ var commands = {
   add: (command) => add (command),
   comment: (command) => comment(command),
   unfollow: unfollow,
-  addsch: addScheduler
+  addsch: addScheduler,
+  repost: repost
 }
 
 function askStorage() {
@@ -200,6 +202,7 @@ function askStorage() {
       let res = commands[command[0]](command);
       if (command[0] === 'run' && res !== false) return;
       if (command[0] === 'unfollow' && res !== false) return;
+      if (command[0] === 'repost' && res !== false) return;
     } else {
       console.log('Invalid command `' + command[0] + '`' );
     }
@@ -601,4 +604,66 @@ function dispatch() {
   console.log('');
   
   askStorage();
+}
+
+function repost(command) {
+  let target = command[1];
+  login(userInput.username, userInput.password)
+    .then(function () {
+      return Client.Account.searchForUser(gSession, target);
+    })
+    .then(function (account) {
+      let mediaObj = new Client.Feed.UserMedia(gSession, account.id);
+      let mediaFun = mediaObj.all.bind(mediaObj);
+      
+      return mediaFun();
+    })
+    .then(function (media) {
+      let i    = 0;
+      let path = __dirname + '/media/' + userInput.username + '/';
+
+      mkdirp(path, function (err) {
+        promiseWhile(function () {
+          return i < media.length;
+        }, function () {
+          return new Promise(function (resolve) {
+            console.log(`Processing ${i + 1} of ${media.length}`);
+            
+            if (media[i].params.mediaType === 1) {
+              request(media[i].params.images[0].url)
+                .on('response', function (res) {
+                  res.pipe(fs.createWriteStream(path + i + '~' + media[i].id + '.jpg'));
+
+                  resolve(++i);
+                })
+            } else if (media[i].params.mediaType === 2) {
+              request(media[i].params.videos[0].url)
+                .on('response', function (res) {
+                  res.pipe(fs.createWriteStream(path + i + '~v~' + media[i].id + '.mp4'));
+
+                  resolve(++i);
+                });
+            } else if (media[i].params.mediaType === 8) {
+              let items = media[i].params;
+  
+              for (let n = 0; n < items.images.length; n++) {
+                let image = items.images[n][0].url;
+                request.get(image)
+                  .on('response', function (res) {
+                    if (typeof media[i] === 'undefined')
+                      console.log('undefined');
+                    res.pipe(fs.createWriteStream(path + i + '~c~' + n + '~' + media[i].id + '.jpg'));
+
+                    resolve(++i);
+                  })
+              }
+            }
+          })
+        })
+      })
+
+      var promiseWhile = Promise.method(function(condition, action) {
+        if (condition()) return action().then(promiseWhile.bind(null, condition, action));
+      });
+    })
 }
