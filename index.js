@@ -782,7 +782,7 @@ function doRepost(command) {
                 .then(function (payload) {
                   console.log(payload);
                   medias.length = 0;
-                  return uploadPhoto(mediaPath, capt);
+                  return uploadVideo(mediaPath, capt);
                 })
                 .then(function () {
                   resolve(++i);
