@@ -160,7 +160,6 @@ var commands = {
 
       console.log(`${Colors.FgBlue}${user.username}${Colors.Reset} Used as default user.`);
       console.log(`Type ${Colors.FgGreen}Run${Colors.Reset} to start program.`);
-      
       return true;
     } else if (typeof command[1] === 'string') {
       db.findOne({username: command[1]}, {}, function(err, doc) {
@@ -169,9 +168,8 @@ var commands = {
 
         console.log(`Use ${Colors.FgBlue}${user.username}${Colors.Reset} as User`);
         console.log(`Type ${Colors.FgGreen}Run${Colors.Reset} to start program.`);
-      
-        return true;
       });
+      return true;
     }
   },
   exit: function () {
@@ -181,7 +179,8 @@ var commands = {
   comment: (command) => comment(command),
   unfollow: unfollow,
   addsch: addScheduler,
-  repost: repost
+  repost: repost,
+  dorepost: doRepost
 }
 
 function askStorage() {
@@ -619,8 +618,9 @@ function repost(command) {
       return mediaFun();
     })
     .then(function (media) {
-      let i    = 0;
-      let path = __dirname + '/media/' + userInput.username + '/';
+      let i       = 0;
+      let path    = __dirname + '/media/' + userInput.username + '/' + target + '/';
+      let caption = [];
 
       var promiseWhile = Promise.method(function(condition, action) {
         console.log(`Downloaded: ${i + 1} of ${media.length}`);
@@ -635,6 +635,7 @@ function repost(command) {
         promiseWhile(function () {
           return typeof media[i] !== 'undefined'
         }, function () {
+<<<<<<< Updated upstream
           return new Promise(function () {
             if (media[i].params.mediaType === 1) {
               request(media[i].params.images[0].url)
@@ -660,11 +661,41 @@ function repost(command) {
                   console.log(err);
                   return ++i;
                 })
+=======
+          return new Promise(function (resolve) {
+            caption.push({
+              id: media[i].id,
+              text: media[i].params.caption
+            });
+
+            if (media[i].params.mediaType === 1 &&
+                !fs.existsSync(path + i + '~' + media[i].id + '.jpg')) {
+              request(media[i].params.images[0].url)
+                .pipe(fs.createWriteStream(path + i + '~' + media[i].id + '.jpg'))
+                .on('finish', function () {
+                  resolve(++i);
+                });
+
+            } else if (media[i].params.mediaType === 2 &&
+                      (!fs.existsSync(path + i + '~v~' + media[i].id + '.mp4') ||
+                       !fs.existsSync(path + i + '~v~' + media[i].id + '.jpg'))) {
+              request(media[i].params.videos[0].url)
+                .pipe(fs.createWriteStream(path + i + '~v~' + media[i].id + '.mp4'))
+                .on('finish', function () {
+                  request(media[i].params.images[0].url)
+                    .pipe(fs.createWriteStream(path + i + '~v~' + media[i].id + '.jpg'))
+                    .on('finish', function () {
+                      resolve(++i);
+                    })
+                });
+
+>>>>>>> Stashed changes
             } else if (media[i].params.mediaType === 8) {
               let items = media[i].params;
   
               for (let n = 0; n < items.images.length; n++) {
                 let image = items.images[n][0].url;
+<<<<<<< Updated upstream
                 request.get(image)
                   .on('response', function (res) {
                   res.pipe(fs.createWriteStream(path + i + '~c~' + n + '~' + media[i].id + '.jpg'));
@@ -680,9 +711,178 @@ function repost(command) {
             } else {
               console.log(media[i]);
               return ++i;
+=======
+
+                if (!fs.existsSync(path + i + '~c~' + n + '~' + media[i].id + '.jpg')) {
+                  request.get(image)
+                    .pipe(fs.createWriteStream(path + i + '~c~' + n + '~' + media[i].id + '.jpg'))
+                    .on('finish', function () {
+                      resolve(++i);
+                    });
+                } else {
+                  console.log('File already downloaded. Skipped');
+                  resolve(++i);
+                }
+              }
+            } else {
+              console.log('File already downloaded. Skipped');
+              resolve(++i);
+>>>>>>> Stashed changes
             }
           })
         })
       })
+<<<<<<< Updated upstream
+=======
+
+      var promiseWhile = Promise.method(function(condition, action) {
+        console.log(`Processing ${i} of ${media.length}`);
+        if (condition()) return action().then(promiseWhile.bind(null, condition, action));
+
+        fs.writeFile(path + '/caption.json', JSON.stringify(caption), 'utf8', function (err) {
+          console.log('Caption writted.');
+          return doRepost();
+        })
+      });
+    })
+}
+
+/**
+ * Execute repost to instagram
+ * @param {array} command 
+ */
+function doRepost(command) {
+  let target = command[1];
+  path = __dirname + '/media/' + userInput.username + '/' + target + '/';
+  var caption = null;
+
+  new Promise(function (resolve, reject) {
+    fs.readFile(path + 'caption.json', 'utf8', function (err, data) {
+      if (err) reject(err);
+
+      resolve(JSON.parse(data));
+    })
+  })
+  .then(function (capt) {
+    caption = capt;
+    
+    return login(userInput.username, userInput.password);
+  })
+  .then(function () {
+    fs.readdir(path, function (err, files) {
+      let medias          = [];
+      let carouselCaption = null;
+
+      let i = 0;
+
+      var promiseWhile = Promise.method(function(condition, action) {
+        if (!condition()) return;
+  
+        return new Promise((resolve) => setTimeout(function() {
+  
+          return action().then(promiseWhile.bind(null, condition, action))
+          resolve();
+        }, userInput.delay))
+      });
+
+      promiseWhile(function () {
+        return typeof files[i] !== 'undefined';
+      }, function () {
+        return new Promise(function (resolve) {
+
+          let imgPrefix = files[i].split('~');
+          let imgId     = imgPrefix[imgPrefix.length - 1].split('.')[0];
+          let mediaPath = path + files[i];
+          let capt      = caption.find(item => item.id === imgId).text;
+    
+          if (imgPrefix.length === 3) { //carousel images
+            medias.push({
+              type: 'photo',
+              size: [400, 400],
+              data: path + files[i]
+            });
+  
+            carouselCaption = capt;
+            resolve(++i);
+          }
+  
+          if (imgPrefix.length === 2) { //image
+            if (medias.length > 0) {
+              uploadAlbum(medias, carouselCaption)
+                .then(function (payload) {
+                  console.log(payload);
+                  medias.length = 0;
+                  return uploadPhoto(mediaPath, capt);
+                })
+                .then(function () {
+                  resolve(++i);
+                })
+            } else {
+              uploadPhoto(mediaPath, capt)
+                .then(function () {
+                  resolve(++i)
+                })
+            }
+          } else if (imgPrefix.length === 4) { //video
+
+            if (medias.length > 0) {
+              uploadAlbum(medias, carouselCaption)
+                .then(function (payload) {
+                  console.log(payload);
+                  medias.length = 0;
+                  return uploadPhoto(mediaPath, capt);
+                })
+                .then(function () {
+                  resolve(++i);
+                })
+            } else {
+              uploadVideo(mediaPath, cover, capt)
+                .then(function () {
+                  resolve(++i);
+                });
+            }
+          }
+        });
+      })
+    })
+  })
+}
+
+function uploadPhoto(path, caption) {
+  return Client.Upload.photo(gSession, path)
+  .then(function (upload) {
+    return Client.Media.configurePhoto(gSession, upload.params.uploadId, caption);
+  })
+  .then(function (medium) {
+    console.log(medium);
+    Promise.resolve();
+  })
+  .catch(function (err) {
+    console.log(err);
+  })
+}
+
+function uploadVideo (path, cover, caption) {
+  return Client.Upload.video(gSession, path, cover)
+    .then(function (upload) {
+      return Client.Media.configureVideo(gSession, upload.uploadId, caption, upload.durationms);
+    })
+    .then(function (medium) {
+      console.log(medium);
+      Promise.resolve();
+    })
+    .catch(function (err) {
+      console.log(err);
+    })
+}
+
+function uploadAlbum (medias, carouselCaption) {
+  return Client.Upload.album(gSession, medias)
+    .then(function (payload) {
+      return Client.Media.configureAlbum(gSession, payload, carouselCaption, false);
+    })
+    .catch(function (err) {
+      console.log(err);
+>>>>>>> Stashed changes
     })
 }
