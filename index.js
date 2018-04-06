@@ -622,27 +622,44 @@ function repost(command) {
       let i    = 0;
       let path = __dirname + '/media/' + userInput.username + '/';
 
+      var promiseWhile = Promise.method(function(condition, action) {
+        console.log(`Downloaded: ${i + 1} of ${media.length}`);
+        if (!condition()) {
+          return;
+        }
+
+        return action().then(promiseWhile.bind(null, condition, action));
+      });
+
       mkdirp(path, function (err) {
         promiseWhile(function () {
-          return i < media.length;
+          return typeof media[i] !== 'undefined'
         }, function () {
-          return new Promise(function (resolve) {
-            console.log(`Processing ${i + 1} of ${media.length}`);
-            
+          return new Promise(function () {
             if (media[i].params.mediaType === 1) {
               request(media[i].params.images[0].url)
                 .on('response', function (res) {
                   res.pipe(fs.createWriteStream(path + i + '~' + media[i].id + '.jpg'));
-
-                  resolve(++i);
+                })
+                .on('finish', function () {
+                  return ++i;
+                })
+                .on('error', function (err) {
+                  console.log(err);
+                  return ++i;
                 })
             } else if (media[i].params.mediaType === 2) {
               request(media[i].params.videos[0].url)
                 .on('response', function (res) {
                   res.pipe(fs.createWriteStream(path + i + '~v~' + media[i].id + '.mp4'));
-
-                  resolve(++i);
-                });
+                })
+                .on('finish', function () {
+                  return ++i;
+                })
+                .on('error', function (err) {
+                  console.log(err);
+                  return ++i;
+                })
             } else if (media[i].params.mediaType === 8) {
               let items = media[i].params;
   
@@ -650,20 +667,22 @@ function repost(command) {
                 let image = items.images[n][0].url;
                 request.get(image)
                   .on('response', function (res) {
-                    if (typeof media[i] === 'undefined')
-                      console.log('undefined');
-                    res.pipe(fs.createWriteStream(path + i + '~c~' + n + '~' + media[i].id + '.jpg'));
-
-                    resolve(++i);
+                  res.pipe(fs.createWriteStream(path + i + '~c~' + n + '~' + media[i].id + '.jpg'));
+                  })
+                  .on('finish', function () {
+                    return ++i;
+                  })
+                  .on('error', function (err) {
+                    console.log(error);
+                    return ++i;
                   })
               }
+            } else {
+              console.log(media[i]);
+              return ++i;
             }
           })
         })
       })
-
-      var promiseWhile = Promise.method(function(condition, action) {
-        if (condition()) return action().then(promiseWhile.bind(null, condition, action));
-      });
     })
 }
