@@ -635,33 +635,6 @@ function repost(command) {
         promiseWhile(function () {
           return typeof media[i] !== 'undefined'
         }, function () {
-<<<<<<< Updated upstream
-          return new Promise(function () {
-            if (media[i].params.mediaType === 1) {
-              request(media[i].params.images[0].url)
-                .on('response', function (res) {
-                  res.pipe(fs.createWriteStream(path + i + '~' + media[i].id + '.jpg'));
-                })
-                .on('finish', function () {
-                  return ++i;
-                })
-                .on('error', function (err) {
-                  console.log(err);
-                  return ++i;
-                })
-            } else if (media[i].params.mediaType === 2) {
-              request(media[i].params.videos[0].url)
-                .on('response', function (res) {
-                  res.pipe(fs.createWriteStream(path + i + '~v~' + media[i].id + '.mp4'));
-                })
-                .on('finish', function () {
-                  return ++i;
-                })
-                .on('error', function (err) {
-                  console.log(err);
-                  return ++i;
-                })
-=======
           return new Promise(function (resolve) {
             caption.push({
               id: media[i].id,
@@ -689,29 +662,11 @@ function repost(command) {
                     })
                 });
 
->>>>>>> Stashed changes
             } else if (media[i].params.mediaType === 8) {
               let items = media[i].params;
   
               for (let n = 0; n < items.images.length; n++) {
                 let image = items.images[n][0].url;
-<<<<<<< Updated upstream
-                request.get(image)
-                  .on('response', function (res) {
-                  res.pipe(fs.createWriteStream(path + i + '~c~' + n + '~' + media[i].id + '.jpg'));
-                  })
-                  .on('finish', function () {
-                    return ++i;
-                  })
-                  .on('error', function (err) {
-                    console.log(error);
-                    return ++i;
-                  })
-              }
-            } else {
-              console.log(media[i]);
-              return ++i;
-=======
 
                 if (!fs.existsSync(path + i + '~c~' + n + '~' + media[i].id + '.jpg')) {
                   request.get(image)
@@ -727,13 +682,10 @@ function repost(command) {
             } else {
               console.log('File already downloaded. Skipped');
               resolve(++i);
->>>>>>> Stashed changes
             }
           })
         })
       })
-<<<<<<< Updated upstream
-=======
 
       var promiseWhile = Promise.method(function(condition, action) {
         console.log(`Processing ${i} of ${media.length}`);
@@ -883,6 +835,5 @@ function uploadAlbum (medias, carouselCaption) {
     })
     .catch(function (err) {
       console.log(err);
->>>>>>> Stashed changes
     })
 }
