@@ -663,39 +663,66 @@ function repost(command) {
                 });
 
             } else if (media[i].params.mediaType === 8) {
-              let items = media[i].params;
-  
-              for (let n = 0; n < items.images.length; n++) {
-                let image = items.images[n][0].url;
+              var items = media[i].params;
 
-                if (!fs.existsSync(path + i + '~c~' + n + '~' + media[i].id + '.jpg')) {
-                  request.get(image)
-                    .pipe(fs.createWriteStream(path + i + '~c~' + n + '~' + media[i].id + '.jpg'))
-                    .on('finish', function () {
-                      resolve(++i);
-                    });
-                } else {
-                  console.log('File already downloaded. Skipped');
-                  resolve(++i);
-                }
+              promiseFor(function (carouselCount) {
+              if (carouselCount >= items.images.length) {
+                return true;
               }
+
+              return false;
+              }, function (carouselCount) {
+                return new Promise(function (resolv) {
+                  let image = items.images[carouselCount][0].url;
+
+                  if (items.hasOwnProperty('videos') &&
+                      (!fs.existsSync(path + i + '~c~' + carouselCount + '~' + media[i].id + '.mp4') ||
+                       !fs.existsSync(path + i + '~c~' + carouselCount + '~' + media[i].id + '.jpg'))) {
+                    request.get(items.videos[carouselCount][0])
+                      .on('response', function (res) {
+                        res.pipe(fs.createWriteStream(path + i + '~c~' + carouselCount + '~' + media[i].id + '.mp4'))
+  
+                        request.get(images)
+                          .on('response', function(resImage) {
+                            resImage.pipe(fs.createWriteStream(path + i + '~c~cover~' + carouselCount + '~' + media[i].id + '.jpg'));
+                            return resolv(++carouselCount);
+                          });
+                      });
+                  } else if (!fs.existsSync(path + i + '~c~' + carouselCount + '~' + media[i].id + '.jpg')) {
+                    request.get(image)
+                    .on('response', function (res) {
+                      res.pipe(fs.createWriteStream(path + i + '~c~' + carouselCount + '~' + media[i].id + '.jpg'));
+                      return resolv(++carouselCount);
+                    });
+                  } else {
+                    return resolv(++carouselCount);
+                  }
+                })
+              }, 0).then(function () {
+                resolve(++i);
+              })
             } else {
-              console.log('File already downloaded. Skipped');
               resolve(++i);
             }
+          });
+        }).then(function () {
+          fs.writeFile(path + '/caption.json', JSON.stringify(caption), 'utf8', function (err) {
+            console.log('Caption writted.');
+            return doRepost();
           })
         })
-      })
+      });
 
       var promiseWhile = Promise.method(function(condition, action) {
         console.log(`Processing ${i} of ${media.length}`);
         if (condition()) return action().then(promiseWhile.bind(null, condition, action));
-
-        fs.writeFile(path + '/caption.json', JSON.stringify(caption), 'utf8', function (err) {
-          console.log('Caption writted.');
-          return doRepost();
-        })
       });
+
+      var promiseFor = Promise.method(function (condition, action, value) {
+        if (condition(value)) return value;
+        
+        return action(value).then(promiseFor.bind(null, condition, action));
+      })
     })
 }
 
@@ -727,8 +754,8 @@ function doRepost(command) {
 
       let i = 0;
 
-      var promiseWhile = Promise.method(function(condition, action) {
-        if (!condition()) return;
+      var promiseWhile = Promise.method(function(condition, action, value) {
+        if (!condition(value)) return value;
   
         return new Promise((resolve) => setTimeout(function() {
   
@@ -737,64 +764,57 @@ function doRepost(command) {
         }, userInput.delay))
       });
 
-      promiseWhile(function () {
-        return typeof files[i] !== 'undefined';
-      }, function () {
+      promiseWhile(function (count) {
+        return typeof files[count] !== 'undefined';
+      }, function (count) {
         return new Promise(function (resolve) {
 
-          let imgPrefix = files[i].split('~');
+          let imgPrefix = files[count].split('~');
           let imgId     = imgPrefix[imgPrefix.length - 1].split('.')[0];
-          let mediaPath = path + files[i];
+          let mediaPath = path + files[count];
           let capt      = caption.find(item => item.id === imgId).text;
     
           if (imgPrefix.length === 3) { //carousel images
-            medias.push({
-              type: 'photo',
-              size: [400, 400],
-              data: path + files[i]
-            });
-  
-            carouselCaption = capt;
-            resolve(++i);
+
+            promiseWhile(function (count) {
+              if (files[count].search('~c~') > -1) {
+                //todo: post carousel;
+                --count;
+                return true;
+              }
+
+              return false;
+            }, function (count) {
+              if (files[count].endsWith('mp4')) {
+                medias.push({
+                  type: 'photo',
+                  size: [400, 400],
+                  data: path + files[count]
+                });
+              } else {
+                medias.push({
+                  type: 'photo',
+                  size: [400, 400],
+                  data: path + files[count]
+                });
+              }
+
+              ++count;
+            }, count);
           }
   
           if (imgPrefix.length === 2) { //image
-            if (medias.length > 0) {
-              uploadAlbum(medias, carouselCaption)
-                .then(function (payload) {
-                  console.log(payload);
-                  medias.length = 0;
-                  return uploadPhoto(mediaPath, capt);
-                })
-                .then(function () {
-                  resolve(++i);
-                })
-            } else {
-              uploadPhoto(mediaPath, capt)
-                .then(function () {
-                  resolve(++i)
-                })
-            }
+            uploadPhoto(mediaPath, capt)
+            .then(function () {
+              resolve(++count)
+            })
           } else if (imgPrefix.length === 4) { //video
-
-            if (medias.length > 0) {
-              uploadAlbum(medias, carouselCaption)
-                .then(function (payload) {
-                  console.log(payload);
-                  medias.length = 0;
-                  return uploadPhoto(mediaPath, capt);
-                })
-                .then(function () {
-                  resolve(++i);
-                })
-            } else {
-              uploadVideo(mediaPath, cover, capt)
-                .then(function () {
-                  resolve(++i);
-                });
-            }
+            uploadVideo(mediaPath, cover, capt)
+            .then(function () {
+              resolve(++count);
+            });
           }
-        });
+        }, 0);
       })
     })
   })
