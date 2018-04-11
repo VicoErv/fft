@@ -677,7 +677,7 @@ function repost(command) {
 
                   if (items.hasOwnProperty('videos') &&
                       (!fs.existsSync(path + i + '~c~' + carouselCount + '~' + media[i].id + '.mp4') ||
-                       !fs.existsSync(path + i + '~c~' + carouselCount + '~' + media[i].id + '.jpg'))) {
+                       !fs.existsSync(path + i + '~c~cover~' + carouselCount + '~' + media[i].id + '.jpg'))) {
                     request.get(items.videos[carouselCount][0])
                       .on('response', function (res) {
                         res.pipe(fs.createWriteStream(path + i + '~c~' + carouselCount + '~' + media[i].id + '.mp4'))
@@ -749,73 +749,93 @@ function doRepost(command) {
   })
   .then(function () {
     fs.readdir(path, function (err, files) {
-      let medias          = [];
-      let carouselCaption = null;
+      var promiseFor = Promise.method(function (condition, action, count) {
+        if (!condition(count)) return count;
 
-      let i = 0;
-
-      var promiseWhile = Promise.method(function(condition, action, value) {
-        if (!condition(value)) return value;
-  
-        return new Promise((resolve) => setTimeout(function() {
-  
-          return action().then(promiseWhile.bind(null, condition, action))
-          resolve();
-        }, userInput.delay))
+        return action(count).then(promiseFor.bind(null, condition, action));
       });
 
-      promiseWhile(function (count) {
-        return typeof files[count] !== 'undefined';
+      promiseFor(function (count) {
+        return count < 100;
       }, function (count) {
-        return new Promise(function (resolve) {
+        return new Promise(function (resolve, reject) {
+          var token   = files[count].split('~')
+          var mediaId = token[token.length - 1].split('.')[0]
+          var capt    = caption.find(el => el.id === mediaId)
+          var medias  = [];
+          
+          if (token.length === 21) {
+            Client.Upload.photo(gSession, path + files[count])
+              .then(function (upload) {
+                return Client.Media.configurePhoto(gSession, upload.params.uploadId, capt.text)
+              })
+              .then(function (payload) {
+                console.log(payload)
+                resolve(++count)
+              })
+          } else if (token.length === 31) {
+            Client.Upload.video(gSession, path + files[count + 1], path + files[count])
+              .then(function (upload) {
+                return Client.Media.configureVideo(gSession, upload.uploadId, capt.text, upload.durationms)
+              })
+              .then(function (payload) {
+                console.log(payload)
+                ++count //pass cover
+              }).catch(function (err) {
+                console.log(err.message)
+                ++count
+              })
 
-          let imgPrefix = files[count].split('~');
-          let imgId     = imgPrefix[imgPrefix.length - 1].split('.')[0];
-          let mediaPath = path + files[count];
-          let capt      = caption.find(item => item.id === imgId).text;
-    
-          if (imgPrefix.length === 3) { //carousel images
+            resolve(++count)
+          } else if (token.length === 4) {
+            var carouselFlag = true;
 
-            promiseWhile(function (count) {
-              if (files[count].search('~c~') > -1) {
-                //todo: post carousel;
-                --count;
-                return true;
+            var promiseWhileCarousel = Promise.method(function (condition, action) {
+              if (!condition()) {
+                return Client.Upload.album(gSession, medias)
+                  .then(function (payload) {
+                    return Client.Media.configureAlbum(gSession, payload, capt.text, false);
+                  })
+                  .then(function (resp) {
+                    medias.length = 0
+                    resolve(count)
+                    return;
+                  })
               }
 
-              return false;
-            }, function (count) {
-              if (files[count].endsWith('mp4')) {
-                medias.push({
-                  type: 'photo',
-                  size: [400, 400],
-                  data: path + files[count]
-                });
-              } else {
-                medias.push({
-                  type: 'photo',
-                  size: [400, 400],
-                  data: path + files[count]
-                });
-              }
-
-              ++count;
-            }, count);
-          }
-  
-          if (imgPrefix.length === 2) { //image
-            uploadPhoto(mediaPath, capt)
-            .then(function () {
-              resolve(++count)
+              return action().then(promiseWhileCarousel.bind(null, condition, action))
             })
-          } else if (imgPrefix.length === 4) { //video
-            uploadVideo(mediaPath, cover, capt)
-            .then(function () {
-              resolve(++count);
-            });
+
+            promiseWhileCarousel(function () {
+              return files[count].search('~c~') > -1;
+            }, function () {
+              return new Promise(function (resolve2, reject2) {
+                if (files[count].endsWith('mp4')) {
+                  medias.push({
+                    type: 'video',
+                    size: [720, 720],
+                    thumbnail: path + files[count - 1],
+                    data: path + files[count]
+                  })
+
+                  resolve2(++count)
+                } else if (files[count].search('~cover~') === -1) {
+                  medias.push({
+                    type: 'photo',
+                    size: [400, 400],
+                    data: path + files[count]
+                  })
+
+                  resolve2(++count)
+                }
+              })
+            })
+          } else {
+            resolve(++count)
           }
-        }, 0);
-      })
+        })
+      }, 0)
+
     })
   })
 }
