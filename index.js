@@ -764,7 +764,7 @@ function doRepost(command) {
           var capt    = caption.find(el => el.id === mediaId)
           var medias  = [];
           
-          if (token.length === 21) {
+          if (token.length === 2) {
             Client.Upload.photo(gSession, path + files[count])
               .then(function (upload) {
                 return Client.Media.configurePhoto(gSession, upload.params.uploadId, capt.text)
@@ -773,7 +773,10 @@ function doRepost(command) {
                 console.log(payload)
                 resolve(++count)
               })
-          } else if (token.length === 31) {
+              .catch(function (err) {
+                console.log(err);
+              })
+          } else if (token.length === 3) {
             Client.Upload.video(gSession, path + files[count + 1], path + files[count])
               .then(function (upload) {
                 return Client.Media.configureVideo(gSession, upload.uploadId, capt.text, upload.durationms)
@@ -799,6 +802,11 @@ function doRepost(command) {
                   .then(function (resp) {
                     medias.length = 0
                     resolve(count)
+                    return;
+                  })
+                  .catch(function (err) {
+                    console.log(err);
+                    resolve(count);
                     return;
                   })
               }
