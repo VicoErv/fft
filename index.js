@@ -182,6 +182,11 @@ var commands = {
   },
   add: (command) => add (command),
   comment: (command) => comment(command),
+  cclear: function(){
+    dbComment.remove({ });
+    console.log(`${Colors.FgGreen}Success${Colors.Reset} remove all comment.`);
+    askStorage();
+  },
   unfollow: unfollow,
   addsch: addScheduler,
   repost: repost
