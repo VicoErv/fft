@@ -177,6 +177,9 @@ var commands = {
   exit: function () {
     process.exit(0);
   },
+  menu: function(){
+    dispatch();
+  },
   add: (command) => add (command),
   comment: (command) => comment(command),
   unfollow: unfollow,
@@ -600,6 +603,7 @@ function dispatch() {
   console.log(`   use       set user for fft program`);
   console.log(`   run       start fft program`);
   console.log(`   unfollow  unfollow not following back`);
+  console.log(`   menu      show menu`);
   console.log(`   exit      exit program`);
   console.log('');
   
