@@ -182,6 +182,11 @@ var commands = {
   },
   add: (command) => add (command),
   comment: (command) => comment(command),
+  cclear: function(){
+    dbComment.remove({ });
+    console.log(`${Colors.FgGreen}Success${Colors.Reset} remove all comment.`);
+    askStorage();
+  },
   unfollow: unfollow,
   addsch: addScheduler,
   repost: repost
@@ -598,6 +603,7 @@ function dispatch() {
   console.log(`  ${Colors.Bright}${Colors.FgGreen}Comment${Colors.Reset}`);
   console.log(`   comment   add new comment`);
   console.log(`   clist     list added comment`);
+  console.log(`   cclear    remove all added comment`);
   console.log('');
   console.log(`  ${Colors.Bright}${Colors.FgGreen}Program${Colors.Reset}`);
   console.log(`   use       set user for fft program`);
