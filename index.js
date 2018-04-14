@@ -183,7 +183,7 @@ var commands = {
   add: (command) => add (command),
   comment: (command) => comment(command),
   cclear: function(){
-    dbComment.remove({ });
+    dbComment.remove({ },{ multi: true});
     console.log(`${Colors.FgGreen}Success${Colors.Reset} remove all comment.`);
     askStorage();
   },
