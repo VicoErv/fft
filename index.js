@@ -177,8 +177,16 @@ var commands = {
   exit: function () {
     process.exit(0);
   },
+  menu: function(){
+    dispatch();
+  },
   add: (command) => add (command),
   comment: (command) => comment(command),
+  cclear: function(){
+    dbComment.remove({ },{ multi: true});
+    console.log(`${Colors.FgGreen}Success${Colors.Reset} remove all comment.`);
+    askStorage();
+  },
   unfollow: unfollow,
   addsch: addScheduler,
   repost: repost
@@ -595,11 +603,13 @@ function dispatch() {
   console.log(`  ${Colors.Bright}${Colors.FgGreen}Comment${Colors.Reset}`);
   console.log(`   comment   add new comment`);
   console.log(`   clist     list added comment`);
+  console.log(`   cclear    remove all added comment`);
   console.log('');
   console.log(`  ${Colors.Bright}${Colors.FgGreen}Program${Colors.Reset}`);
   console.log(`   use       set user for fft program`);
   console.log(`   run       start fft program`);
   console.log(`   unfollow  unfollow not following back`);
+  console.log(`   menu      show menu`);
   console.log(`   exit      exit program`);
   console.log('');
   
