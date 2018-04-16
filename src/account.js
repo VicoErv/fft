@@ -66,7 +66,7 @@ export default class Account {
         this.db.update(search, data, {}, callback);
     }
 
-    addAccount() {
+    static addAccount(command) {
         let that = this;
 
         return Util.ask('username? ')
