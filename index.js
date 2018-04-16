@@ -234,67 +234,6 @@ function comment (command) {
 }
 
 function add (command) {
-  return Util.ask('username? ')
-    .then(()=>Util.ask('password? '))
-    .then(()=>Util.ask('target? '))
-    .then(()=>Util.ask('delay (ms)? '))
-    .then((rl) => {
-      login(Util.responses[0], Util.responses[1])
-        .then(function(session) {
-          userInput.username = Util.responses[0];
-          userInput.password = Util.responses[1];
-          userInput.target   = Util.responses[2];
-          userInput.delay    = Util.responses[3];
-    
-          Util.responses.length = 0;
-    
-          if (typeof command === 'undefined') {
-            rl.close();
-          }
-          
-          if (typeof command !== 'undefined') {
-            console.log(`${Colors.FgGreen}*User Registered*${Colors.Reset}`);
-          } else {
-            console.log(`${Colors.FgGreen}*Processing User*${Colors.Reset}`);
-          }
-    
-          console.log('Username\t'   + Colors.FgRed      + userInput.username + Colors.Reset);
-          console.log('Target is\t'  + Colors.FgBlue     + userInput.target   + Colors.Reset);
-          console.log('With delay\t' + Colors.Underscore + userInput.delay    + Colors.Reset + ' ms');
-    
-          if (userInput.username.length > 0 &&
-              userInput.password.length > 0) {
-      
-                return new Promise(function (resolve, reject) {
-                  db.find({username: userInput.username}, function(err, res) {
-                    if (err) reject(err);
-    
-                    if (res.length === 0) {
-                      db.insert(userInput, function(err, doc) {
-                        if (err) reject(err);
-
-                        resolve(userInput);
-                      });
-                    } else {
-                      db.update({username: userInput.username}, userInput, {}, function(err, doc) {
-                        if (err) reject(err);
-
-                        resolve(userInput);
-                      });
-                    }
-    
-                    if (typeof command !== 'undefined') {
-                      askStorage();
-                    }
-                  });
-                }).catch(function (error) {
-                  console.log(error);
-                })
-          }
-        }).catch(function(error) {
-          console.log(error);
-        })
-  });
 }
 
 var gSession = null;
