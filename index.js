@@ -233,12 +233,6 @@ function comment (command) {
     });
 }
 
-function loadComment (callback) {
-  dbComment.find({}, function(err, doc) {
-    callback(doc);
-  })
-}
-
 function add (command) {
   return Util.ask('username? ')
     .then(()=>Util.ask('password? '))
@@ -301,63 +295,6 @@ function add (command) {
           console.log(error);
         })
   });
-}
-
-function login(username, password, arg) {
-  if (typeof arg === 'undefined') {
-    console.log(` ${Colors.FgGreen}Please wait...${Colors.Reset}`);
-  }
-
-  if (Util.fileExists(__dirname + '/local/cookie/' + username + '.cookie')) {
-    
-    return new Promise(function(resolve) {
-      gSession = new Client.Session(
-        new Client.Device(username),
-        new Client.CookieFileStorage(__dirname + '/local/cookie/' + username + '.cookie')
-      );
-
-      if (typeof arg === 'undefined') {
-        console.log(`${Colors.Bright}${Colors.FgGreen}Login using stored Session!${Colors.Reset}`);
-      }
-
-      resolve(gSession);
-    })
-  } else {
-    
-    return new Promise(function (resolve) {
-      Client.Session.create(
-        new Client.Device(username),
-        new Client.CookieFileStorage(__dirname + '/local/cookie/' + username + '.cookie'),
-        username,
-        password
-      ).then(function(session) {
-        gSession = session;
-        
-        if (typeof arg === 'undefined') {
-          console.log(`${Colors.Bright}${Colors.FgGreen}Login Completed!${Colors.Reset}`);
-        }
-
-        resolve(gSession);
-      }).catch(function() {
-        if (fs.existsSync(__dirname + '/local/cookie/' + username + '.cookie')) {
-          fs.unlinkSync(__dirname + '/local/cookie/' + username + '.cookie');
-        }
-        
-        if (typeof arg !== 'undefined') {
-          console.log(`${Colors.FgRed}Invalid username or password${Colors.Reset}`);
-        }
-
-        askStorage();
-    
-        return false;
-      })
-    })
-  }
-}
-
-function follow(userId) {
-  
-  return Client.Relationship.create(gSession, userId);
 }
 
 var gSession = null;
