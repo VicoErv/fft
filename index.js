@@ -12,13 +12,14 @@ var Account = require('./src/account');
 
 mkdirp(__dirname + '/local/db/', function (err) {
     mkdirp(__dirname + '/local/cookie/', function (err) {
+        account = new Account();
+
         dispatch();
     });
 });
 
 var account;
 var table;
-var userInputKeys = Object.keys(userInput);
 
 var user = null;
 var comments = null;
@@ -135,7 +136,7 @@ var commands = {
     menu: function () {
         dispatch();
     },
-    add: (command) => Account.addAccount(command),
+    add: (command) => account.addAccount(command),
     comment: (command) => comment(command),
     cclear: function () {
         dbComment.remove({}, { multi: true });
@@ -149,14 +150,8 @@ var commands = {
 
 function askStorage() {
     new Promise(function (resolve, reject) {
-        db.find({}, function (err, doc) {
-            if (err) {
-                reject(err);
-            } else {
-                table = doc;
-                resolve(Util.ask(Colors.Bright + Colors.FgGreen + 'command' + Colors.Reset + '> '))
-            }
-        })
+        resolve(Util.ask(Colors.Bright + Colors.FgGreen
+            + 'command' + Colors.Reset + '> '))
     }).then(function (rl) {
         Util.responses.length = 0;
         command = Util.response.split(' ');
