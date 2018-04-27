@@ -1,12 +1,20 @@
 const Client = require('instagram-private-api').V1;
 const Util = require("../lib/util");
 const DataStore = require("nedb");
+const fs = require('fs');
+var AsciiTable = require('ascii-table');
 
 const path = __dirname + '/../local/db/db';
 
 function Account() {
     this.cookie = __dirname + '/../local/cookie/' + this.username + '.cookie';
     this.db = new DataStore({ filename: path, autoload: true });
+}
+
+Account.prototype.getCookie = function () {
+    this.cookie = __dirname + '/../local/cookie/' + this.username + '.cookie';
+
+    return this.cookie;
 }
 
 Account.prototype.login = function (username, password) {
@@ -16,18 +24,18 @@ Account.prototype.login = function (username, password) {
 
     console.log(` ${Colors.FgGreen}Please wait...${Colors.Reset}`);
 
-    if (Util.fileExists(that.cookie)) {
+    if (Util.fileExists(that.getCookie())) {
         return new Promise(function (resolve) {
             var session = new Client.Session(
                 new Client.Device(that.username),
-                new Client.CookieFileStorage(that.cookie)
+                new Client.CookieFileStorage(that.getCookie())
             );
 
             if (typeof arg === 'undefined')
                 console.log(`${Colors.Bright}${Colors.FgGreen}Login `
                     + `using stored Session!${Colors.Reset}`);
 
-            return session;
+            resolve(session);
         }).catch(function (err) {
             console.log(err.message);
         })
@@ -36,7 +44,7 @@ Account.prototype.login = function (username, password) {
         return new Promise(function (resolve) {
             Client.Session.create(
                 new Client.Device(that.username),
-                new Client.CookieFileStorage(that.cookie),
+                new Client.CookieFileStorage(that.getCookie()),
                 that.username,
                 that.password
             ).then(function (session) {
@@ -44,16 +52,42 @@ Account.prototype.login = function (username, password) {
                     console.log(`${Colors.Bright}${Colors.FgGreen}Login `
                         + `Completed!${Colors.Reset}`);
 
-                return session;
+                resolve(session);
             }).catch(function () {
-                if (fs.existsSync(that.cookie))
-                    fs.unlinkSync(that.cookie);
+                if (fs.existsSync(that.getCookie()))
+                    fs.unlinkSync(that.getCookie());
 
                 console.log(`${Colors.FgRed}Invalid username or `
                     + `password${Colors.Reset}`);
             })
         })
     }
+}
+
+Account.prototype.list = function () {
+    let that = this;
+
+    return new Promise(function (resolve, reject) {
+        that.db.find({}, function (err, docs) {
+            if (err) reject(err);
+
+            if (docs.length === 0) {
+                console.log("No user");
+                console.log(`- use ${Colors.FgRed}add${Colors.Reset} command to add new user`);
+
+                resolve();
+            } else {
+                var ascii = new AsciiTable('User List');
+                ascii.setHeading('Username', 'Target', 'Delay');
+                docs.forEach(element => {
+                    ascii.addRow(element.username, element.target, element.delay);
+                });
+
+                console.log(ascii.toString());
+                resolve();
+            }
+        });
+    })
 }
 
 Account.prototype.byUsername = function (username, callback) {
@@ -76,7 +110,7 @@ Account.prototype.addAccount = function (command) {
         .then(() => Util.ask('target? '))
         .then(() => Util.ask('delay (ms)? '))
         .then((rl) => {
-            that.login(Util.responses[0], Util.responses[1])
+            return that.login(Util.responses[0], Util.responses[1])
                 .then(function (session) {
                     var user = {};
 
@@ -137,6 +171,8 @@ Account.prototype.addAccount = function (command) {
                     }
                 }).catch(function (error) {
                     console.log(error);
+
+                    return false;
                 });
         });
 }

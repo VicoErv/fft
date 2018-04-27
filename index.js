@@ -2,7 +2,6 @@ var Client = require('instagram-private-api').V1;
 var Colors = require('./lib/colors');
 var readline = require('readline');
 var Util = require('./lib/util');
-var AsciiTable = require('ascii-table');
 var Promise = require('bluebird');
 var sample = require('lodash.sample');
 var fs = require('fs');
@@ -29,22 +28,7 @@ var fftOptions = {
 }
 
 var commands = {
-    list: function () {
-        if (table.length === 0) {
-            console.log("No user");
-            console.log(`- use ${Colors.FgRed}add${Colors.Reset} command to add new user`);
-
-            return;
-        }
-
-        var ascii = new AsciiTable('User List');
-        ascii.setHeading('Username', 'Target', 'Delay');
-        table.forEach(element => {
-            ascii.addRow(element.username, element.target, element.delay);
-        });
-
-        console.log(ascii.toString());
-    },
+    list: () => account.list().then(askStorage),
     clist: function () {
         dbComment.find({}, {}, function (err, doc) {
             if (doc.length === 0) {
@@ -136,7 +120,7 @@ var commands = {
     menu: function () {
         dispatch();
     },
-    add: (command) => account.addAccount(command),
+    add: (command) => account.addAccount(command).then(askStorage),
     comment: (command) => comment(command),
     cclear: function () {
         dbComment.remove({}, { multi: true });
@@ -158,9 +142,7 @@ function askStorage() {
 
         if (command.length > 0 && commands.hasOwnProperty(command[0])) {
             let res = commands[command[0]](command);
-            if (command[0] === 'run' && res !== false) return;
-            if (command[0] === 'unfollow' && res !== false) return;
-            if (command[0] === 'repost' && res !== false) return;
+            return;
         } else {
             console.log('Invalid command `' + command[0] + '`');
         }
