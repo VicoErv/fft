@@ -749,22 +749,30 @@ function doRepost(command) {
   })
   .then(function () {
     fs.readdir(path, function (err, files) {
+      files = files.reverse();
       var promiseFor = Promise.method(function (condition, action, count) {
         if (!condition(count)) return count;
 
-        return action(count).then(promiseFor.bind(null, condition, action));
+        new Promise (function (resolve) {
+          setTimeout(function () {
+            resolve(action(count).then(promiseFor.bind(null, condition, action)));
+          }, userInput.delay);
+        });
       });
 
       promiseFor(function (count) {
-        return count < 100;
+        return count < files.length;
       }, function (count) {
         return new Promise(function (resolve, reject) {
           var token   = files[count].split('~');
           var mediaId = token[token.length - 1].split('.')[0];
           var capt    = caption.find(el => el.id === mediaId);
           var medias  = [];
+          var captText = '';
 
-          var captText = capt.text.replace(/@([a-zA-Z0-9_\.]+)/, '');
+          if (capt !== undefined) {
+            captText = capt.text.replace(/@([a-zA-Z0-9_\.]+)/, '');
+          }
           
           if (token.length === 2) {
             Client.Upload.photo(gSession, path + files[count])
@@ -794,22 +802,21 @@ function doRepost(command) {
             resolve(++count)
           } else if (token.length === 4) {
             var carouselFlag = true;
+            let total = -2;
 
             var promiseWhileCarousel = Promise.method(function (condition, action) {
               if (!condition()) {
                 return Client.Upload.album(gSession, medias)
                   .then(function (payload) {
+                    medias.length = 0;
                     return Client.Media.configureAlbum(gSession, payload, captText, false);
                   })
                   .then(function (resp) {
-                    medias.length = 0
                     resolve(count)
-                    return;
                   })
                   .catch(function (err) {
                     console.log(err);
                     resolve(count);
-                    return;
                   })
               }
 
@@ -817,7 +824,12 @@ function doRepost(command) {
             })
 
             promiseWhileCarousel(function () {
-              return files[count].search('~c~') > -1;
+              if (total === -2) {
+                total = files[count].match(/~c~(\d+)~/)[1];
+                total = parseInt(total);
+              }
+
+              return total !== -1;
             }, function () {
               return new Promise(function (resolve2, reject2) {
                 if (files[count].endsWith('mp4')) {
@@ -828,6 +840,7 @@ function doRepost(command) {
                     data: path + files[count]
                   })
 
+                  --total;
                   resolve2(++count)
                 } else if (files[count].search('~cover~') === -1) {
                   medias.push({
@@ -836,6 +849,7 @@ function doRepost(command) {
                     data: path + files[count]
                   })
 
+                  --total;
                   resolve2(++count)
                 }
               })
