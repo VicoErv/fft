@@ -66,10 +66,7 @@ function fft() {
                     Client.Like.create(gSession, media[0].id)
                       .then(function (resp) {
                         console.log(`${current._params.username} ${Colors.FgGreen}Like Given${Colors.Reset}`);
-                        dbFollowing.insert({ userId: current.id }, function (err, newDoc) {
-
-                          return ++i;
-                        })
+                        return ++i;
                       }).catch(function (error) {
                         console.log(error);
                       });
