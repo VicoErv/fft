@@ -759,15 +759,17 @@ function doRepost(command) {
         return count < 100;
       }, function (count) {
         return new Promise(function (resolve, reject) {
-          var token   = files[count].split('~')
-          var mediaId = token[token.length - 1].split('.')[0]
-          var capt    = caption.find(el => el.id === mediaId)
+          var token   = files[count].split('~');
+          var mediaId = token[token.length - 1].split('.')[0];
+          var capt    = caption.find(el => el.id === mediaId);
           var medias  = [];
+
+          var captText = capt.text.replace(/@([a-zA-Z0-9_\.]+)/, '');
           
           if (token.length === 2) {
             Client.Upload.photo(gSession, path + files[count])
               .then(function (upload) {
-                return Client.Media.configurePhoto(gSession, upload.params.uploadId, capt.text)
+                return Client.Media.configurePhoto(gSession, upload.params.uploadId, captText)
               })
               .then(function (payload) {
                 console.log(payload)
@@ -779,7 +781,7 @@ function doRepost(command) {
           } else if (token.length === 3) {
             Client.Upload.video(gSession, path + files[count + 1], path + files[count])
               .then(function (upload) {
-                return Client.Media.configureVideo(gSession, upload.uploadId, capt.text, upload.durationms)
+                return Client.Media.configureVideo(gSession, upload.uploadId, captText, upload.durationms)
               })
               .then(function (payload) {
                 console.log(payload)
@@ -797,7 +799,7 @@ function doRepost(command) {
               if (!condition()) {
                 return Client.Upload.album(gSession, medias)
                   .then(function (payload) {
-                    return Client.Media.configureAlbum(gSession, payload, capt.text, false);
+                    return Client.Media.configureAlbum(gSession, payload, captText, false);
                   })
                   .then(function (resp) {
                     medias.length = 0
