@@ -780,7 +780,7 @@ function doRepost(command) {
           var medias  = [];
           var captText = '';
 
-          if (capt !== undefined) {
+          if (capt !== undefined && capt.text !== null) {
             captText = capt.text.replace(/@([a-zA-Z0-9_\.]+)/, '');
           }
           
