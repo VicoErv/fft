@@ -4,10 +4,9 @@ For information please check [fft wiki](https://github.com/VicoErv/fft/wiki)
 ## Install
 - Using git:
   
-      $ pkg install git nodejs openssl openssh
-      $ mkdir ~/fft && cd ~/fft
-      $ git clone https://github.com/VicoErv
-      $ npm install
+      $ pkg install git
+      $ git clone https://github.com/VicoErv/fft.git
+      $ ./install
 
 - Using npm
 
