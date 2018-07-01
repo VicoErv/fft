@@ -1,0 +1,21 @@
+[[ $# -eq 0 ]] && {
+	which nodejs >> /dev/null 2>&1
+    [[ ! $? -eq 0 ]] && {
+    	pkg install nodejs
+    }
+
+    which openssl >> /dev/null 2>&1
+    [[ ! $? -eq 0 ]] && {
+    	pkg install openssl
+    }
+
+    which openssh >> /dev/null 2>&1
+    [[ ! $? -eq 0 ]] && {
+    	pkg install openssh
+    }
+
+    [[ -d "node_modules" ]] > /dev/null 2>&1
+    [[ ! $? -eq 0 ]] && {
+    	npm install
+    }
+}
