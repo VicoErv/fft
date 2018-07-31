@@ -32,6 +32,7 @@ For information please check [fft wiki](https://github.com/VicoErv/fft/wiki)
 
 - Comment
     - comment `add new comment`
+        - `Use comma if more than 1 comment`
     - clist `list added comment`
 
  - Program
