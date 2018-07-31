@@ -220,15 +220,19 @@ function askStorage() {
 
 function comment (command) {
   return Util.ask('Please type your comment: ')
-    .then(function (rl) {
-      dbComment.insert({text: Util.response}, function (err, newDoc) {
-        console.log("Your comment has been added to database.");
+    .then(function(rl) {
+        var arrayComment = Util.response.split(',');
+        for (var i = 0; i < arrayComment.length; i++) {
+            var ListComment = Util.response.split(',')[i];
+            console.log("Your comment '" + ListComment + "' has been added to database.");
+            dbComment.insert({text: ListComment}, function(err, newDoc) {
+                loadComment(function(doc) {
+                    comments = doc;
+                    Promise.resolve(askStorage());
+                })
+            })
+        }
         console.log(`Type ${Colors.FgGreen}clist${Colors.Reset} for list your comments.`);
-        loadComment(function(doc) {
-          comments = doc;
-          Promise.resolve(askStorage());
-        })
-      })
     });
 }
 
