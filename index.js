@@ -179,6 +179,7 @@ var commands = {
     dispatch();
   },
   add: (command) => add (command),
+  update: (command) => add (command),
   comment: (command) => comment(command),
   cclear: function(){
     dbComment.remove({ },{ multi: true});
